@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
     categoryFilter.addEventListener('change', function() {
       const selectedCategory = this.value;
       const productRows = document.querySelectorAll('.product-row');
-      
+
       productRows.forEach(row => {
         if (selectedCategory === 'all' || row.dataset.category === selectedCategory) {
           row.classList.remove('d-none');
@@ -17,18 +17,18 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     });
   }
-  
+
   // Product search
   const productSearch = document.getElementById('productSearch');
   if (productSearch) {
     productSearch.addEventListener('input', function() {
       const searchTerm = this.value.toLowerCase().trim();
       const productRows = document.querySelectorAll('.product-row');
-      
+
       productRows.forEach(row => {
         const productName = row.dataset.name.toLowerCase();
         const productBarcode = row.dataset.barcode.toLowerCase();
-        
+
         if (productName.includes(searchTerm) || productBarcode.includes(searchTerm)) {
           row.classList.remove('d-none');
         } else {
@@ -37,13 +37,13 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     });
   }
-  
+
   // Stock level indicators
   const stockLevels = document.querySelectorAll('.stock-level');
   if (stockLevels.length > 0) {
     stockLevels.forEach(element => {
       const quantity = parseInt(element.dataset.quantity);
-      
+
       if (quantity <= 0) {
         element.classList.add('bg-danger');
         element.textContent = 'Out of Stock';
@@ -56,17 +56,17 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
   }
-  
+
   // Form validation for adding/editing products
   const productForm = document.getElementById('productForm');
   if (productForm) {
-    
+
     productForm.addEventListener('submit', function(event) {
       if (!this.checkValidity()) {
         event.preventDefault();
         event.stopPropagation();
       }
-      
+
       this.classList.add('was-validated');
     });
   }
