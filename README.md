@@ -1,9 +1,7 @@
 
-# Jewelry Store Management System\
+# Jewellery Store Management System\
 
-username-jshroff
-email:- jshroff200@gmail.com
-password:- 
+existing users 
 
 username-jasshroff1
 email:- jasshroff@gmail.com
