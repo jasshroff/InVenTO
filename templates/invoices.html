@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block page_actions %}
+<div class="btn-toolbar mb-2 mb-md-0">
+  <a href="{{ url_for('new_invoice') }}" class="btn btn-sm btn-primary">
+    <i class="bi bi-plus-circle"></i> Create Invoice
+  </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Filters -->
+<div class="row mb-4">
+  <div class="col-md-12">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">Invoice Filters</h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-4 mb-2">
+            <label for="startDateFilter" class="form-label">Start Date</label>
+            <input type="date" class="form-control" id="startDateFilter">
+          </div>
+          <div class="col-md-4 mb-2">
+            <label for="endDateFilter" class="form-label">End Date</label>
+            <input type="date" class="form-control" id="endDateFilter">
+          </div>
+          <div class="col-md-4 mb-2">
+            <label for="statusFilter" class="form-label">Status</label>
+            <select class="form-select" id="statusFilter">
+              <option value="all" selected>All Statuses</option>
+              <option value="paid">Paid</option>
+              <option value="pending">Pending</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Invoice List -->
+<div class="card">
+  <div class="card-header">
+    <h5 class="mb-0">All Invoices</h5>
+  </div>
+  <div class="card-body">
+    {% if invoices %}
+    <div class="table-responsive">
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Invoice #</th>
+            <th>Customer</th>
+            <th>Issue Date</th>
+            <th>Due Date</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for invoice in invoices %}
+          <tr class="invoice-row" data-date="{{ invoice.issue_date }}" data-status="{{ invoice.status }}">
+            <td>{{ invoice.invoice_number }}</td>
+            <td>{{ invoice.customer.name }}</td>
+            <td>{{ invoice.issue_date.strftime('%Y-%m-%d') }}</td>
+            <td>{{ invoice.due_date.strftime('%Y-%m-%d') if invoice.due_date else '-' }}</td>
+            <td>₹{{ "%.2f"|format(invoice.final_amount) }}</td>
+            <td>
+              <span class="badge {% if invoice.status == 'paid' %}bg-success{% elif invoice.status == 'pending' %}bg-warning{% else %}bg-danger{% endif %}">
+                {{ invoice.status|upper }}
+              </span>
+            </td>
+            <td>
+              <div class="btn-group btn-group-sm">
+                <a href="{{ url_for('view_invoice', invoice_id=invoice.id) }}" class="btn btn-outline-primary">
+                  <i class="bi bi-eye"></i>
+                </a>
+                <a href="{{ url_for('generate_pdf', invoice_id=invoice.id) }}" class="btn btn-outline-secondary">
+                  <i class="bi bi-file-pdf"></i>
+                </a>
+                {% if invoice.status == 'pending' %}
+                <form action="{{ url_for('update_invoice_status', invoice_id=invoice.id, status='paid') }}" method="POST" class="d-inline">
+                  {{ form.csrf_token }}
+                  <button type="submit" class="btn btn-outline-success" onclick="return confirm('Mark this invoice as paid?')">
+                    <i class="bi bi-check-circle"></i>
+                  </button>
+                </form>
+                <form action="{{ url_for('update_invoice_status', invoice_id=invoice.id, status='cancelled') }}" method="POST" class="d-inline">
+                  {{ form.csrf_token }}
+                  <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Mark this invoice as cancelled?')">
+                    <i class="bi bi-x-circle"></i>
+                  </button>
+                </form>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+      No invoices found. Click "Create Invoice" to generate your first invoice.
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/invoices.js') }}"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Date range filter for invoices
+    const startDateFilter = document.getElementById('startDateFilter');
+    const endDateFilter = document.getElementById('endDateFilter');
+    const statusFilter = document.getElementById('statusFilter');
+    
+    function applyFilters() {
+      const startDate = startDateFilter.value ? new Date(startDateFilter.value) : null;
+      const endDate = endDateFilter.value ? new Date(endDateFilter.value) : null;
+      const status = statusFilter.value;
+      
+      const invoiceRows = document.querySelectorAll('.invoice-row');
+      
+      invoiceRows.forEach(row => {
+        const invoiceDate = new Date(row.dataset.date);
+        const invoiceStatus = row.dataset.status;
+        let showRow = true;
+        
+        if (startDate && invoiceDate < startDate) {
+          showRow = false;
+        }
+        
+        if (endDate && invoiceDate > endDate) {
+          showRow = false;
+        }
+        
+        if (status !== 'all' && invoiceStatus !== status) {
+          showRow = false;
+        }
+        
+        if (showRow) {
+          row.classList.remove('d-none');
+        } else {
+          row.classList.add('d-none');
+        }
+      });
+    }
+    
+    // Apply filters when any filter changes
+    startDateFilter.addEventListener('change', applyFilters);
+    endDateFilter.addEventListener('change', applyFilters);
+    statusFilter.addEventListener('change', applyFilters);
+  });
+</script>
+{% endblock %}

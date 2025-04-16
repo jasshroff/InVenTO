@@ -1,0 +1,185 @@
+/* Main stylesheet for InVenTO Inventory Management System */
+
+/* Custom variables */
+:root {
+  --invento-primary: #3498db;
+  --invento-secondary: #2c3e50;
+  --invento-success: #2ecc71;
+  --invento-danger: #e74c3c;
+  --invento-warning: #f39c12;
+  --invento-info: #1abc9c;
+  --invento-light: #ecf0f1;
+  --invento-dark: #2c3e50;
+}
+
+/* General styling */
+body {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.content-wrapper {
+  flex: 1;
+}
+
+/* Sidebar styling */
+.sidebar {
+  min-height: calc(100vh - 56px);
+  background-color: var(--bs-dark);
+  color: var(--bs-light);
+}
+
+.sidebar .nav-link {
+  color: var(--bs-light);
+  transition: all 0.3s;
+}
+
+.sidebar .nav-link:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar .nav-link.active {
+  background-color: var(--invento-primary);
+}
+
+.sidebar .nav-link i {
+  margin-right: 10px;
+}
+
+/* Dashboard stats */
+.dashboard-stat {
+  transition: all 0.3s;
+}
+
+.dashboard-stat:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* Chart containers */
+.chart-container {
+  position: relative;
+  height: 250px;
+}
+
+/* Inventory status badges */
+.stock-level {
+  min-width: 100px;
+  text-align: center;
+}
+
+/* Invoice styles */
+.invoice-header {
+  border-bottom: 2px solid var(--bs-dark);
+  margin-bottom: 20px;
+}
+
+.invoice-company {
+  margin-bottom: 20px;
+}
+
+.invoice-total {
+  margin-top: 20px;
+  background-color: var(--bs-light);
+  padding: 15px;
+  border-radius: 5px;
+}
+
+/* Print styles for invoices */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  body {
+    padding: 0;
+    margin: 0;
+  }
+  
+  .container {
+    width: 100%;
+    max-width: 100%;
+  }
+  
+  .invoice-container {
+    padding: 20px;
+    border: none;
+    box-shadow: none;
+  }
+}
+
+/* Form styling */
+.form-control:focus {
+  border-color: var(--invento-primary);
+  box-shadow: 0 0 0 0.25rem rgba(52, 152, 219, 0.25);
+}
+
+/* Toast container */
+#toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1050;
+}
+
+/* Custom buttons */
+.btn-invento-primary {
+  background-color: var(--invento-primary);
+  border-color: var(--invento-primary);
+  color: white;
+}
+
+.btn-invento-primary:hover {
+  background-color: #2980b9;
+  border-color: #2980b9;
+  color: white;
+}
+
+/* Table responsive styles */
+.table-responsive {
+  overflow-x: auto;
+}
+
+/* Login and registration page */
+.auth-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: var(--bs-dark);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 400px;
+  border-radius: 10px;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+}
+
+.auth-card .card-header {
+  background-color: var(--invento-primary);
+  color: white;
+  text-align: center;
+  border-radius: 10px 10px 0 0;
+  padding: 20px;
+}
+
+.auth-card .card-body {
+  padding: 30px;
+}
+
+/* Responsive utilities */
+@media (max-width: 768px) {
+  .sidebar {
+    min-height: auto;
+  }
+  
+  .hide-on-small {
+    display: none;
+  }
+  
+  .dashboard-stat {
+    margin-bottom: 15px;
+  }
+}

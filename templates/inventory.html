@@ -1,0 +1,637 @@
+{% extends "base.html" %}
+
+{% block page_actions %}
+<!-- Action buttons for inventory page -->
+<div class="btn-toolbar mb-2 mb-md-0">
+  <div class="btn-group me-2">
+    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#categoryModal">
+      <i class="bi bi-folder-plus"></i> Add Category
+    </button>
+    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#supplierModal">
+      <i class="bi bi-building-add"></i> Add Supplier
+    </button>
+  </div>
+  <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#productModal">
+    <i class="bi bi-plus-circle"></i> Add Product
+  </button>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Filters and Search -->
+<div class="row mb-4">
+  <div class="col-md-8">
+    <div class="input-group">
+      <span class="input-group-text"><i class="bi bi-search"></i></span>
+      <input type="text" class="form-control" id="productSearch" placeholder="Search products by name or barcode...">
+    </div>
+  </div>
+  <div class="col-md-4">
+    <select class="form-select" id="categoryFilter">
+      <option value="all" selected>All Categories</option>
+      {% for category in categories %}
+      <option value="{{ category.id }}">{{ category.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+</div>
+
+<!-- Product Table -->
+<div class="card">
+  <div class="card-header">
+    <h5 class="mb-0">Products</h5>
+  </div>
+  <div class="card-body">
+    {% if products %}
+    <div class="table-responsive">
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Barcode</th>
+            <th>Category</th>
+            <th>Price</th>
+            <th>Quantity</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for product in products %}
+          <tr class="product-row" data-name="{{ product.name }}" data-barcode="{{ product.barcode }}" data-category="{{ product.category_id }}">
+            <td>{{ product.name }}</td>
+            <td>{{ product.barcode }}</td>
+            <td>{{ product.category.name }}</td>
+            <td>₹{{ "%.2f"|format(product.price) }}</td>
+            <td>{{ product.quantity }}</td>
+            <td>
+              <span class="badge stock-level" data-quantity="{{ product.quantity }}"></span>
+            </td>
+            <td>
+              <div class="btn-group btn-group-sm">
+                <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#productModal" 
+                        onclick="editProduct({{ product.id }})">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-outline-danger" onclick="confirmDelete('Are you sure you want to delete this product?', 'delete-product-{{ product.id }}')">
+                  <i class="bi bi-trash"></i>
+                </button>
+                <form id="delete-product-{{ product.id }}" action="{{ url_for('delete_product', product_id=product.id) }}" method="POST" class="d-none">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                </form>                
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+      No products found. Click "Add Product" to create your first product.
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Categories and Suppliers Section -->
+<div class="row mt-4">
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">Categories</h5>
+      </div>
+      <div class="card-body">
+        {% if categories %}
+        <div class="table-responsive">
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for category in categories %}
+              <tr>
+                <td>{{ category.name }}</td>
+                <td>{{ category.description|truncate(30) }}</td>
+                <td>
+                  <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#categoryModal" 
+                            onclick="editCategory({{ category.id }})">
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-outline-danger btn-sm" onclick="confirmDelete('Are you sure you want to delete this category?', 'delete-category-{{ category.id }}')">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                    <form id="delete-category-{{ category.id }}" action="{{ url_for('delete_category', category_id=category.id) }}" method="POST" class="d-none">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    </form>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info">
+          No categories found. Click "Add Category" to create your first category.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">Suppliers</h5>
+      </div>
+      <div class="card-body">
+        {% if suppliers %}
+        <div class="table-responsive">
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Contact</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for supplier in suppliers %}
+              <tr>
+                <td>{{ supplier.name }}</td>
+                <td>{{ supplier.phone }}</td>
+                <td>
+                  <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#supplierModal" 
+                            onclick="editSupplier({{ supplier.id }})">
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-outline-danger btn-sm" onclick="confirmDelete('Are you sure you want to delete this supplier?', 'delete-supplier-{{ supplier.id }}')">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                    <form id="delete-supplier-{{ supplier.id }}" action="{{ url_for('delete_supplier', supplier_id=supplier.id) }}" method="POST" class="d-none">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    </form>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info">
+          No suppliers found. Click "Add Supplier" to create your first supplier.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+              
+
+<!-- Category Modal -->
+<div class="modal fade" id="categoryModal" tabindex="-1" aria-labelledby="categoryModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="categoryModalLabel">Add Category</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        {% if category_form %}
+        <form method="POST" action="{% if request.path == url_for('new_category') %}{{ url_for('new_category') }}{% else %}{{ url_for('edit_category', category_id=category.id) }}{% endif %}" id="categoryForm">
+          {{ form.hidden_tag() }}
+          
+          <div class="mb-3">
+            {{ form.name.label(class="form-label") }}
+            {% if form.name.errors %}
+              {{ form.name(class="form-control is-invalid") }}
+              <div class="invalid-feedback">
+                {% for error in form.name.errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+            {% else %}
+              {{ form.name(class="form-control") }}
+            {% endif %}
+          </div>
+          
+          <div class="mb-3">
+            {{ form.description.label(class="form-label") }}
+            {{ form.description(class="form-control", rows=3) }}
+          </div>
+          
+          <div class="d-grid gap-2">
+            {{ form.submit(class="btn btn-primary") }}
+          </div>
+        </form>
+        {% else %}
+        <form method="POST" action="{{ url_for('new_category') }}" id="categoryForm">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          
+          <div class="mb-3">
+            <label for="name" class="form-label">Name</label>
+            <input type="text" class="form-control" id="name" name="name" required>
+          </div>
+          
+          <div class="mb-3">
+            <label for="description" class="form-label">Description</label>
+            <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+          </div>
+          
+          <div class="d-grid gap-2">
+            <button type="submit" class="btn btn-primary">Submit</button>
+          </div>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Supplier Modal -->
+<div class="modal fade" id="supplierModal" tabindex="-1" aria-labelledby="supplierModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="supplierModalLabel">Add Supplier</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        {% if supplier_form %}
+        <form method="POST" action="{% if request.path == url_for('new_supplier') %}{{ url_for('new_supplier') }}{% else %}{{ url_for('edit_supplier', supplier_id=supplier.id) }}{% endif %}" id="supplierForm">
+          {{ form.hidden_tag() }}
+          
+          <div class="mb-3">
+            {{ form.name.label(class="form-label") }}
+            {% if form.name.errors %}
+              {{ form.name(class="form-control is-invalid") }}
+              <div class="invalid-feedback">
+                {% for error in form.name.errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+            {% else %}
+              {{ form.name(class="form-control") }}
+            {% endif %}
+          </div>
+          
+          <div class="mb-3">
+            {{ form.contact_person.label(class="form-label") }}
+            {{ form.contact_person(class="form-control") }}
+          </div>
+          
+          <div class="mb-3">
+            {{ form.email.label(class="form-label") }}
+            {% if form.email.errors %}
+              {{ form.email(class="form-control is-invalid") }}
+              <div class="invalid-feedback">
+                {% for error in form.email.errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+            {% else %}
+              {{ form.email(class="form-control") }}
+            {% endif %}
+          </div>
+          
+          <div class="mb-3">
+            {{ form.phone.label(class="form-label") }}
+            {{ form.phone(class="form-control") }}
+          </div>
+          
+          <div class="mb-3">
+            {{ form.address.label(class="form-label") }}
+            {{ form.address(class="form-control", rows=3) }}
+          </div>
+          
+          <div class="d-grid gap-2">
+            {{ form.submit(class="btn btn-primary") }}
+          </div>
+        </form>
+        {% else %}
+        <form method="POST" action="{{ url_for('new_supplier') }}" id="supplierForm">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          
+          <div class="mb-3">
+            <label for="name" class="form-label">Name</label>
+            <input type="text" class="form-control" id="name" name="name" required>
+          </div>
+          
+          <div class="mb-3">
+            <label for="contact_person" class="form-label">Contact Person</label>
+            <input type="text" class="form-control" id="contact_person" name="contact_person">
+          </div>
+          
+          <div class="mb-3">
+            <label for="email" class="form-label">Email</label>
+            <input type="email" class="form-control" id="email" name="email">
+          </div>
+          
+          <div class="mb-3">
+            <label for="phone" class="form-label">Phone</label>
+            <input type="text" class="form-control" id="phone" name="phone">
+          </div>
+          
+          <div class="mb-3">
+            <label for="address" class="form-label">Address</label>
+            <textarea class="form-control" id="address" name="address" rows="3"></textarea>
+          </div>
+          
+          <div class="d-grid gap-2">
+            <button type="submit" class="btn btn-primary">Submit</button>
+          </div>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Product Modal -->
+<div class="modal fade" id="productModal" tabindex="-1" aria-labelledby="productModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="productModalLabel">Add Product</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        {% if product_form %}
+        <form method="POST" action="{% if request.path == url_for('new_product') %}{{ url_for('new_product') }}{% else %}{{ url_for('edit_product', product_id=product.id) }}{% endif %}" id="productForm" class="needs-validation" novalidate>
+          {{ form.hidden_tag() }}
+          
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              {{ form.name.label(class="form-label") }}
+              {% if form.name.errors %}
+                {{ form.name(class="form-control is-invalid") }}
+                <div class="invalid-feedback">
+                  {% for error in form.name.errors %}
+                    {{ error }}
+                  {% endfor %}
+                </div>
+              {% else %}
+                {{ form.name(class="form-control") }}
+              {% endif %}
+            </div>
+            
+            <div class="col-md-6 mb-3">
+              {{ form.barcode.label(class="form-label") }}
+              {% if form.barcode.errors %}
+                {{ form.barcode(class="form-control is-invalid") }}
+                <div class="invalid-feedback">
+                  {% for error in form.barcode.errors %}
+                    {{ error }}
+                  {% endfor %}
+                </div>
+              {% else %}
+                {{ form.barcode(class="form-control", readonly="readonly") }}
+                <div class="form-text">Auto-generated 5-digit barcode</div>
+              {% endif %}
+            </div>
+          </div>
+          
+          <div class="mb-3">
+            {{ form.description.label(class="form-label") }}
+            {{ form.description(class="form-control", rows=3) }}
+          </div>
+          
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              {{ form.price.label(class="form-label") }}
+              {% if form.price.errors %}
+                {{ form.price(class="form-control is-invalid") }}
+                <div class="invalid-feedback">
+                  {% for error in form.price.errors %}
+                    {{ error }}
+                  {% endfor %}
+                </div>
+              {% else %}
+                {{ form.price(class="form-control") }}
+              {% endif %}
+            </div>
+            
+            <div class="col-md-4 mb-3">
+              {{ form.cost_price.label(class="form-label") }}
+              {{ form.cost_price(class="form-control") }}
+            </div>
+            
+            <div class="col-md-4 mb-3">
+              {{ form.quantity.label(class="form-label") }}
+              {% if form.quantity.errors %}
+                {{ form.quantity(class="form-control is-invalid") }}
+                <div class="invalid-feedback">
+                  {% for error in form.quantity.errors %}
+                    {{ error }}
+                  {% endfor %}
+                </div>
+              {% else %}
+                {{ form.quantity(class="form-control") }}
+              {% endif %}
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              {{ form.category_id.label(class="form-label") }}
+              {% if form.category_id.errors %}
+                {{ form.category_id(class="form-select is-invalid") }}
+                <div class="invalid-feedback">
+                  {% for error in form.category_id.errors %}
+                    {{ error }}
+                  {% endfor %}
+                </div>
+              {% else %}
+                {{ form.category_id(class="form-select") }}
+              {% endif %}
+            </div>
+            
+            <div class="col-md-6 mb-3">
+              {{ form.supplier_id.label(class="form-label") }}
+              {% if form.supplier_id.errors %}
+                {{ form.supplier_id(class="form-select is-invalid") }}
+                <div class="invalid-feedback">
+                  {% for error in form.supplier_id.errors %}
+                    {{ error }}
+                  {% endfor %}
+                </div>
+              {% else %}
+                {{ form.supplier_id(class="form-select") }}
+              {% endif %}
+            </div>
+          </div>
+          
+          <div class="d-grid gap-2">
+            {{ form.submit(class="btn btn-primary") }}
+          </div>
+        </form>
+        {% else %}
+        <form method="POST" action="{{ url_for('new_product') }}" id="productForm" class="needs-validation" novalidate>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="name" class="form-label">Name</label>
+              <input type="text" class="form-control" id="name" name="name" required>
+            </div>
+            
+            <div class="col-md-6 mb-3">
+              <label for="barcode" class="form-label">Barcode</label>
+              <input type="text" class="form-control" id="barcode" name="barcode" readonly>
+            </div>
+          </div>
+          
+          <div class="mb-3">
+            <label for="description" class="form-label">Description</label>
+            <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <label for="price" class="form-label">Sales Price</label>
+              <input type="number" step="0.01" min="0" class="form-control" id="price" name="price" required>
+            </div>
+            
+            <div class="col-md-4 mb-3">
+              <label for="cost_price" class="form-label">Cost Price</label>
+              <input type="number" step="0.01" min="0" class="form-control" id="cost_price" name="cost_price">
+            </div>
+            
+            <div class="col-md-4 mb-3">
+              <label for="quantity" class="form-label">Quantity</label>
+              <input type="number" min="0" class="form-control" id="quantity" name="quantity" required>
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="category_id" class="form-label">Category</label>
+              <select class="form-select" id="category_id" name="category_id" required>
+                <option value="">Select Category</option>
+                {% for category in categories %}
+                <option value="{{ category.id }}">{{ category.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            
+            <div class="col-md-6 mb-3">
+              <label for="supplier_id" class="form-label">Supplier</label>
+              <select class="form-select" id="supplier_id" name="supplier_id" required>
+                <option value="">Select Supplier</option>
+                {% for supplier in suppliers %}
+                <option value="{{ supplier.id }}">{{ supplier.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          
+          <div class="d-grid gap-2">
+            <button type="submit" class="btn btn-primary">Submit</button>
+          </div>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/inventory.js') }}"></script>
+<script>
+  // Edit Category
+  function editCategory(categoryId) {
+    // Change modal title
+    document.getElementById('categoryModalLabel').innerText = 'Edit Category';
+    
+    // Change form action
+    document.getElementById('categoryForm').action = `/category/₹{categoryId}/edit`;
+    
+    // Fetch category data and populate form
+    fetch(`/category/₹{categoryId}/edit`)
+      .then(response => response.text())
+      .then(html => {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const form = doc.getElementById('categoryForm');
+        if (form) {
+          document.getElementById('categoryForm').innerHTML = form.innerHTML;
+        }
+      })
+      .catch(error => console.error('Error fetching category data:', error));
+  }
+  
+  // Edit Supplier
+  function editSupplier(supplierId) {
+    // Change modal title
+    document.getElementById('supplierModalLabel').innerText = 'Edit Supplier';
+    
+    // Change form action
+    document.getElementById('supplierForm').action = `/supplier/₹{supplierId}/edit`;
+    
+    // Fetch supplier data and populate form
+    fetch(`/supplier/₹{supplierId}/edit`)
+      .then(response => response.text())
+      .then(html => {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const form = doc.getElementById('supplierForm');
+        if (form) {
+          document.getElementById('supplierForm').innerHTML = form.innerHTML;
+        }
+      })
+      .catch(error => console.error('Error fetching supplier data:', error));
+  }
+  
+  // Edit Product
+  function editProduct(productId) {
+    // Change modal title
+    document.getElementById('productModalLabel').innerText = 'Edit Product';
+    
+    // Change form action
+    document.getElementById('productForm').action = `/product/₹{productId}/edit`;
+    
+    // Fetch product data and populate form
+    fetch(`/product/₹{productId}/edit`)
+      .then(response => response.text())
+      .then(html => {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const form = doc.getElementById('productForm');
+        if (form) {
+          document.getElementById('productForm').innerHTML = form.innerHTML;
+        }
+      })
+      .catch(error => console.error('Error fetching product data:', error));
+  }
+  
+  // Reset forms when modals are closed
+  document.querySelectorAll('.modal').forEach(modal => {
+    modal.addEventListener('hidden.bs.modal', function() {
+      const modalId = this.id;
+      
+      if (modalId === 'categoryModal') {
+        document.getElementById('categoryModalLabel').innerText = 'Add Category';
+        document.getElementById('categoryForm').action = "{{ url_for('new_category') }}";
+        document.getElementById('categoryForm').reset();
+      } else if (modalId === 'supplierModal') {
+        document.getElementById('supplierModalLabel').innerText = 'Add Supplier';
+        document.getElementById('supplierForm').action = "{{ url_for('new_supplier') }}";
+        document.getElementById('supplierForm').reset();
+      } else if (modalId === 'productModal') {
+        document.getElementById('productModalLabel').innerText = 'Add Product';
+        document.getElementById('productForm').action = "{{ url_for('new_product') }}";
+        document.getElementById('productForm').reset();
+      }
+    });
+  });
+</script>
+{% endblock %}

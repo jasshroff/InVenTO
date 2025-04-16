@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+{% endblock %}
+
+{% block content %}
+<!-- Stats Overview -->
+<div class="row mb-4">
+  <div class="col-md-3">
+    <div class="card text-white bg-primary dashboard-stat">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div style="max-width: 70%; overflow: hidden;">
+            <h6 class="card-title">Total Sales</h6>
+            <h3 class="mb-0 text-truncate">₹{{ "{:,.2f}".format(total_sales) }}</h3>
+          </div>
+          <i class="bi bi-cash-stack fs-1"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-3">
+    <div class="card text-white bg-success dashboard-stat">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="card-title">Total Products</h6>
+            <h2 class="mb-0">{{ total_products }}</h2>
+          </div>
+          <i class="bi bi-box fs-1"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-3">
+    <div class="card text-white bg-warning dashboard-stat">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="card-title">Low Stock Items</h6>
+            <h2 class="mb-0">{{ low_stock_count }}</h2>
+          </div>
+          <i class="bi bi-exclamation-triangle fs-1"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-3">
+    <div class="card text-white bg-info dashboard-stat">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="card-title">Recent Invoices</h6>
+            <h2 class="mb-0">{{ recent_invoices|length }}</h2>
+          </div>
+          <i class="bi bi-receipt fs-1"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts -->
+<div class="row mb-4">
+  <div class="col-md-8">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="card-title mb-0">Sales Overview (Last 7 Days)</h5>
+      </div>
+      <div class="card-body">
+        <div class="chart-container">
+          <canvas id="salesChart" data-sales="{{ sales_data }}"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="card-title mb-0">Top Selling Products</h5>
+      </div>
+      <div class="card-body">
+        {% if top_products %}
+        <div class="chart-container">
+          <canvas id="topProductsChart" data-products="{{ top_products }}"></canvas>
+        </div>
+        {% else %}
+        <div class="alert alert-info mb-0">No sales data available</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Invoices -->
+<div class="row">
+  <div class="col-md-12">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">Recent Invoices</h5>
+        <a href="{{ url_for('invoices') }}" class="btn btn-sm btn-primary">View All</a>
+      </div>
+      <div class="card-body">
+        {% if recent_invoices %}
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>Invoice #</th>
+                <th>Customer</th>
+                <th>Date</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for invoice in recent_invoices %}
+              <tr>
+                <td>{{ invoice.invoice_number }}</td>
+                <td>{{ invoice.customer.name }}</td>
+                <td>{{ invoice.issue_date.strftime('%Y-%m-%d') }}</td>
+                <td>₹{{ "%.2f"|format(invoice.final_amount) }}</td>
+                <td>
+                  <span class="badge {% if invoice.status == 'paid' %}bg-success{% elif invoice.status == 'pending' %}bg-warning{% else %}bg-danger{% endif %}">
+                    {{ invoice.status|upper }}
+                  </span>
+                </td>
+                <td>
+                  <a href="{{ url_for('view_invoice', invoice_id=invoice.id) }}" class="btn btn-sm btn-info">
+                    <i class="bi bi-eye"></i>
+                  </a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info mb-0">No recent invoices found</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

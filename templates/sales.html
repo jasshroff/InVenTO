@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block page_actions %}
+<div class="btn-toolbar mb-2 mb-md-0">
+  <div class="btn-group me-2">
+    <a href="{{ url_for('new_invoice') }}" class="btn btn-sm btn-primary">
+      <i class="bi bi-plus-circle"></i> New Sale
+    </a>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Filters -->
+<div class="row mb-4">
+  <div class="col-md-12">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">Sales Filters</h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-3 mb-2">
+            <label for="startDateFilter" class="form-label">Start Date</label>
+            <input type="date" class="form-control" id="startDateFilter">
+          </div>
+          <div class="col-md-3 mb-2">
+            <label for="endDateFilter" class="form-label">End Date</label>
+            <input type="date" class="form-control" id="endDateFilter">
+          </div>
+          <div class="col-md-3 mb-2">
+            <label for="statusFilter" class="form-label">Status</label>
+            <select class="form-select" id="statusFilter">
+              <option value="all" selected>All Statuses</option>
+              <option value="paid">Paid</option>
+              <option value="pending">Pending</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+          <div class="col-md-3 d-flex align-items-end mb-2">
+            <button class="btn btn-primary w-100" id="applyDateFilter">
+              <i class="bi bi-funnel"></i> Apply Filters
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Sales Summary -->
+<div class="row mb-4">
+  <div class="col-md-4">
+    <div class="card bg-primary text-white">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <h6 class="card-title">Total Sales</h6>
+            <h4 class="mb-0" id="totalSales">₹0.00</h4>
+          </div>
+          <i class="bi bi-cash fs-1"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card bg-success text-white">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <h6 class="card-title">Paid Invoices</h6>
+            <h4 class="mb-0">{{ invoices|selectattr('status', 'equalto', 'paid')|list|length }}</h4>
+          </div>
+          <i class="bi bi-check-circle fs-1"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card bg-warning text-white">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <h6 class="card-title">Pending Invoices</h6>
+            <h4 class="mb-0">{{ invoices|selectattr('status', 'equalto', 'pending')|list|length }}</h4>
+          </div>
+          <i class="bi bi-clock fs-1"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Sales Table -->
+<div class="card">
+  <div class="card-header">
+    <h5 class="mb-0">Sales History</h5>
+  </div>
+  <div class="card-body">
+    {% if invoices %}
+    <div class="table-responsive">
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Invoice #</th>
+            <th>Customer</th>
+            <th>Date</th>
+            <th>Due Date</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for invoice in invoices %}
+          <tr class="invoice-row" data-date="{{ invoice.issue_date }}" data-status="{{ invoice.status }}" data-amount="{{ invoice.final_amount }}">
+            <td>{{ invoice.invoice_number }}</td>
+            <td>{{ invoice.customer.name }}</td>
+            <td>{{ invoice.issue_date.strftime('%Y-%m-%d') }}</td>
+            <td>{{ invoice.due_date.strftime('%Y-%m-%d') if invoice.due_date else '-' }}</td>
+            <td>₹{{ "%.2f"|format(invoice.final_amount) }}</td>
+            <td>
+              <span class="badge {% if invoice.status == 'paid' %}bg-success{% elif invoice.status == 'pending' %}bg-warning{% else %}bg-danger{% endif %}">
+                {{ invoice.status|upper }}
+              </span>
+            </td>
+            <td>
+              <div class="btn-group btn-group-sm">
+                <a href="{{ url_for('view_invoice', invoice_id=invoice.id) }}" class="btn btn-outline-primary">
+                  <i class="bi bi-eye"></i>
+                </a>
+                <a href="{{ url_for('generate_pdf', invoice_id=invoice.id) }}" class="btn btn-outline-secondary">
+                  <i class="bi bi-file-pdf"></i>
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+      No sales found. Click "New Sale" to create your first invoice.
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/sales.js') }}"></script>
+{% endblock %}

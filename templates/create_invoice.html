@@ -1,0 +1,324 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-12">
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0">Create New Invoice</h5>
+      </div>
+      <div class="card-body">
+        <form id="invoiceForm" novalidate>
+          {{ form.hidden_tag() }}
+          
+          <div class="row mb-4">
+            <div class="col-md-4">
+              <div class="mb-3">
+                {{ form.customer_id.label(class="form-label") }}
+                <div class="input-group">
+                  {% if form.customer_id.errors %}
+                    {{ form.customer_id(class="form-select is-invalid") }}
+                    <div class="invalid-feedback">
+                      {% for error in form.customer_id.errors %}
+                        {{ error }}
+                      {% endfor %}
+                    </div>
+                  {% else %}
+                    {{ form.customer_id(class="form-select") }}
+                  {% endif %}
+                  <button type="button" class="btn btn-primary" id="newCustomerBtn">
+                    <i class="bi bi-plus"></i> New
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="mb-3">
+                {{ form.issue_date.label(class="form-label") }}
+                {% if form.issue_date.errors %}
+                  {{ form.issue_date(class="form-control is-invalid") }}
+                  <div class="invalid-feedback">
+                    {% for error in form.issue_date.errors %}
+                      {{ error }}
+                    {% endfor %}
+                  </div>
+                {% else %}
+                  {{ form.issue_date(class="form-control") }}
+                {% endif %}
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="mb-3">
+                {{ form.due_date.label(class="form-label") }}
+                {{ form.due_date(class="form-control") }}
+              </div>
+            </div>
+          </div>
+          
+          <div class="row mb-4">
+            <div class="col-md-12">
+              <div class="mb-3">
+                {{ form.notes.label(class="form-label") }}
+                {{ form.notes(class="form-control", rows=2) }}
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+    
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0">Add Items</h5>
+      </div>
+      <div class="card-body">
+        <ul class="nav nav-tabs mb-3" id="itemTypeTab" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="product-tab" data-bs-toggle="tab" data-bs-target="#product-tab-pane" type="button" role="tab" aria-controls="product-tab-pane" aria-selected="true">Products</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="service-tab" data-bs-toggle="tab" data-bs-target="#service-tab-pane" type="button" role="tab" aria-controls="service-tab-pane" aria-selected="false">Services</button>
+          </li>
+        </ul>
+        
+        <div class="tab-content" id="itemTypeTabContent">
+          <!-- Products Tab -->
+          <div class="tab-pane fade show active" id="product-tab-pane" role="tabpanel" aria-labelledby="product-tab" tabindex="0">
+            <div class="row mb-3">
+              <div class="col-md-5">
+                <label for="productSelect" class="form-label">Product</label>
+                <select class="form-select" id="productSelect">
+                  <option value="">Select Product</option>
+                  {% for product in products %}
+                  <option value="{{ product.id }}">{{ product.name }} ({{ product.barcode }}) - ₹{{ "%.2f"|format(product.price) }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-3">
+                <label for="quantityInput" class="form-label">Quantity</label>
+                <input type="number" class="form-control" id="quantityInput" min="1">
+                <div class="form-text" id="availableQuantity"></div>
+              </div>
+              <div class="col-md-4 d-flex align-items-end">
+                <button type="button" class="btn btn-primary w-100" id="addProductBtn">
+                  <i class="bi bi-plus-lg"></i> Add Product
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Services Tab -->
+          <div class="tab-pane fade" id="service-tab-pane" role="tabpanel" aria-labelledby="service-tab" tabindex="0">
+            <div class="row mb-3">
+              <div class="col-md-5">
+                <label for="serviceSelect" class="form-label">Service</label>
+                <select class="form-select" id="serviceSelect">
+                  <option value="">Select Service</option>
+                  {% for service in services %}
+                  <option value="{{ service.id }}">{{ service.name }} - ₹{{ "%.2f"|format(service.price) }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-3">
+                <label for="serviceQuantityInput" class="form-label">Quantity</label>
+                <input type="number" class="form-control" id="serviceQuantityInput" min="1" value="1">
+              </div>
+              <div class="col-md-4 d-flex align-items-end">
+                <button type="button" class="btn btn-primary w-100" id="addServiceBtn">
+                  <i class="bi bi-plus-lg"></i> Add Service
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="table-responsive d-none" id="invoiceItems">
+          <table class="table table-bordered">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Type</th>
+                <th>Quantity</th>
+                <th>Unit Price</th>
+                <th>Total</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="invoiceItemsBody">
+              <!-- Items will be added here dynamically -->
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colspan="4" class="text-end"><strong>Subtotal:</strong></td>
+                <td id="subtotalValue">₹0.00</td>
+                <td></td>
+              </tr>
+              <tr>
+                <td colspan="4" class="text-end"><strong>Tax (10%):</strong></td>
+                <td id="taxValue">₹0.00</td>
+                <td></td>
+              </tr>
+              <tr>
+                <td colspan="4" class="text-end"><strong>Discount:</strong></td>
+                <td>
+                  <div class="input-group">
+                    <span class="input-group-text">₹</span>
+                    <input type="number" class="form-control" id="discount" name="discount" min="0" step="0.01" value="0.00">
+                  </div>
+                </td>
+                <td></td>
+              </tr>
+              <tr class="table-active">
+                <td colspan="4" class="text-end"><strong>Total:</strong></td>
+                <td id="totalValue" class="fw-bold">₹0.00</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+    
+    <div class="d-grid gap-2 d-md-flex justify-content-md-end mb-4">
+      <a href="{{ url_for('invoices') }}" class="btn btn-secondary me-md-2">Cancel</a>
+      <button type="button" class="btn btn-primary" id="createInvoiceBtn">
+        <i class="bi bi-save"></i> Create Invoice
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Customer Modal - Moved inside the content block -->
+<div class="modal fade" id="addCustomerModal" tabindex="-1" aria-labelledby="addCustomerModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="addCustomerModalLabel">Add New Customer</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="newCustomerForm">
+          <div class="mb-3">
+            <label for="customerName" class="form-label">Name *</label>
+            <input type="text" class="form-control" id="customerName" required>
+            <div class="invalid-feedback">Please enter a name</div>
+          </div>
+          <div class="mb-3">
+            <label for="customerEmail" class="form-label">Email</label>
+            <input type="email" class="form-control" id="customerEmail">
+          </div>
+          <div class="mb-3">
+            <label for="customerPhone" class="form-label">Phone</label>
+            <input type="text" class="form-control" id="customerPhone">
+          </div>
+          <div class="mb-3">
+            <label for="customerAddress" class="form-label">Address</label>
+            <textarea class="form-control" id="customerAddress" rows="2"></textarea>
+          </div>
+          <div class="mb-3">
+            <label for="customerPreferences" class="form-label">Description/Style Preferences</label>
+            <textarea class="form-control" id="customerPreferences" rows="2"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="saveCustomerBtn">Save Customer</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/invoices.js') }}"></script>
+<script>
+  // Direct implementation without relying on Bootstrap's modal API
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, implementing direct modal approach');
+    
+    // Define the new button and modal
+    const newCustomerBtn = document.getElementById('newCustomerBtn');
+    const modalElement = document.getElementById('addCustomerModal');
+    
+    // Debug
+    console.log('New button found:', !!newCustomerBtn);
+    console.log('Modal element found:', !!modalElement);
+    
+    if (newCustomerBtn && modalElement) {
+      console.log('Both elements found, setting up handlers');
+      
+      // Create global modal manager
+      window.modalManager = {
+        show: function() {
+          console.log('Showing modal');
+          modalElement.style.display = 'block';
+          modalElement.classList.add('show');
+          modalElement.setAttribute('aria-modal', 'true');
+          modalElement.removeAttribute('aria-hidden');
+          document.body.classList.add('modal-open');
+          
+          // Add backdrop manually
+          let backdrop = document.querySelector('.modal-backdrop');
+          if (!backdrop) {
+            backdrop = document.createElement('div');
+            backdrop.className = 'modal-backdrop fade show';
+            document.body.appendChild(backdrop);
+          }
+        },
+        
+        hide: function() {
+          console.log('Hiding modal');
+          modalElement.style.display = 'none';
+          modalElement.classList.remove('show');
+          modalElement.setAttribute('aria-hidden', 'true');
+          modalElement.removeAttribute('aria-modal');
+          document.body.classList.remove('modal-open');
+          
+          // Remove backdrop
+          const backdrops = document.querySelectorAll('.modal-backdrop');
+          backdrops.forEach(backdrop => backdrop.remove());
+        }
+      };
+      
+      // Add click handler to new button
+      newCustomerBtn.addEventListener('click', function(e) {
+        console.log('New customer button clicked');
+        e.preventDefault();
+        e.stopPropagation();
+        window.modalManager.show();
+      });
+      
+      // Handle close buttons
+      const closeButtons = modalElement.querySelectorAll('[data-bs-dismiss="modal"]');
+      closeButtons.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+          console.log('Close button clicked');
+          e.preventDefault();
+          window.modalManager.hide();
+        });
+      });
+      
+      // Close on click outside
+      modalElement.addEventListener('click', function(e) {
+        if (e.target === modalElement) {
+          window.modalManager.hide();
+        }
+      });
+      
+      // Close on ESC key
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && modalElement.classList.contains('show')) {
+          window.modalManager.hide();
+        }
+      });
+      
+      console.log('Modal setup complete');
+    } else {
+      console.error('Could not find modal elements:', 
+                   'Button:', !!newCustomerBtn, 
+                   'Modal:', !!modalElement);
+    }
+  });
+</script>
+{% endblock %}

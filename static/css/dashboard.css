@@ -1,0 +1,25 @@
+
+.dashboard-stat {
+  min-height: 120px;
+}
+
+.dashboard-stat .card-body {
+  padding: 1.25rem;
+}
+
+.dashboard-stat h3 {
+  font-size: 1.75rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dashboard-stat .bi {
+  opacity: 0.8;
+}
+
+.chart-container {
+  position: relative;
+  height: 300px;
+  width: 100%;
+}

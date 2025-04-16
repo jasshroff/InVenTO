@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block page_actions %}
+<div class="btn-toolbar mb-2 mb-md-0">
+  <div class="btn-group me-2">
+    <a href="{{ url_for('generate_pdf', invoice_id=invoice.id) }}" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-file-pdf"></i> Download PDF
+    </a>
+    <button class="btn btn-sm btn-outline-secondary" id="printInvoiceBtn">
+      <i class="bi bi-printer"></i> Print
+    </button>
+  </div>
+
+  {% if invoice.status == 'pending' %}
+  <div class="btn-group me-2">
+    <button class="btn btn-sm btn-success update-status-btn" data-status="paid">
+      <i class="bi bi-check-circle"></i> Mark as Paid
+    </button>
+    <button class="btn btn-sm btn-danger update-status-btn" data-status="cancelled">
+      <i class="bi bi-x-circle"></i> Cancel Invoice
+    </button>
+
+    <form id="status-form-paid" action="{{ url_for('update_invoice_status', invoice_id=invoice.id, status='paid') }}" method="POST" class="d-none">
+        {{ form.csrf_token }}
+    </form>
+    <form id="status-form-cancelled" action="{{ url_for('update_invoice_status', invoice_id=invoice.id, status='cancelled') }}" method="POST" class="d-none">
+        {{ form.csrf_token }}
+    </form>
+  </div>
+  {% endif %}
+
+  <a href="{{ url_for('invoices') }}" class="btn btn-sm btn-outline-primary">
+    <i class="bi bi-arrow-left"></i> Back to Invoices
+  </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="invoice-container">
+  <div class="card">
+    <div class="card-body">
+      <!-- Invoice Header -->
+      <div class="row invoice-header">
+        <div class="col-md-6">
+          <h3 class="mb-0">
+            <i class="bi bi-box-seam me-2"></i>InVenTO
+          </h3>
+          <p class="text-muted mb-0">Inventory Management System</p>
+        </div>
+        <div class="col-md-6 text-md-end">
+          <h4>INVOICE #{{ invoice.invoice_number }}</h4>
+          <span class="badge {% if invoice.status == 'paid' %}bg-success{% elif invoice.status == 'pending' %}bg-warning{% else %}bg-danger{% endif %} fs-6">
+            {{ invoice.status|upper }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Invoice Details -->
+      <div class="row mb-4">
+        <div class="col-md-6">
+          <div class="invoice-company">
+            <h5>From:</h5>
+            <p class="mb-0">InVenTO Inventory Solutions</p>
+            <p class="mb-0">123 Business Street</p>
+            <p class="mb-0">Business City, BC 12345</p>
+            <p class="mb-0">Phone: (123) 456-7890</p>
+            <p class="mb-0">Email: info@invento.com</p>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <h5>To:</h5>
+          <p class="mb-0"><strong>{{ invoice.customer.name }}</strong></p>
+          {% if invoice.customer.email %}
+          <p class="mb-0">Email: {{ invoice.customer.email }}</p>
+          {% endif %}
+          {% if invoice.customer.phone %}
+          <p class="mb-0">Phone: {{ invoice.customer.phone }}</p>
+          {% endif %}
+          {% if invoice.customer.address %}
+          <p class="mb-0">Address: {{ invoice.customer.address }}</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="row mb-4">
+        <div class="col-md-6">
+          <p class="mb-0"><strong>Issue Date:</strong> {{ invoice.issue_date.strftime('%Y-%m-%d') }}</p>
+          {% if invoice.due_date %}
+          <p class="mb-0"><strong>Due Date:</strong> {{ invoice.due_date.strftime('%Y-%m-%d') }}</p>
+          {% endif %}
+        </div>
+        <div class="col-md-6 text-md-end">
+          <p class="mb-0"><strong>Created By:</strong> {{ invoice.created_by }}</p>
+          <p class="mb-0"><strong>Created On:</strong> {{ invoice.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+        </div>
+      </div>
+
+      <!-- Invoice Items -->
+      <div class="table-responsive">
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Item</th>
+              <th>Type</th>
+              <th>Quantity</th>
+              <th>Unit Price</th>
+              <th class="text-end">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in invoice.items %}
+            <tr>
+              <td>{{ loop.index }}</td>
+              <td>
+                {% if item.is_service %}
+                  {{ item.service.name }}
+                {% else %}
+                  {{ item.product.name }}
+                {% endif %}
+              </td>
+              <td>
+                {% if item.is_service %}
+                  <span class="badge bg-info">Service</span>
+                {% else %}
+                  <span class="badge bg-secondary">Product</span>
+                {% endif %}
+              </td>
+              <td>{{ item.quantity }}</td>
+              <td class="text-end">₹{{ "%.2f"|format(item.unit_price) }}</td>
+              <td class="text-end">₹{{ "%.2f"|format(item.total_price) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="5" class="text-end"><strong>Subtotal:</strong></td>
+              <td class="text-end">₹{{ "%.2f"|format(invoice.total_amount) }}</td>
+            </tr>
+            <tr>
+              <td colspan="5" class="text-end"><strong>Tax:</strong></td>
+              <td class="text-end">₹{{ "%.2f"|format(invoice.tax_amount) }}</td>
+            </tr>
+            {% if invoice.discount > 0 %}
+            <tr>
+              <td colspan="5" class="text-end"><strong>Discount:</strong></td>
+              <td class="text-end">₹{{ "%.2f"|format(invoice.discount) }}</td>
+            </tr>
+            {% endif %}
+            <tr class="table-active">
+              <td colspan="5" class="text-end"><strong>Total:</strong></td>
+              <td class="text-end"><strong>₹{{ "%.2f"|format(invoice.final_amount) }}</strong></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <!-- Invoice Notes -->
+      {% if invoice.notes %}
+      <div class="row mt-4">
+        <div class="col-md-12">
+          <h5>Notes:</h5>
+          <p>{{ invoice.notes }}</p>
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="row mt-4">
+        <div class="col-md-12 text-center">
+          <p class="mb-0">Thank you for your business!</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/invoices.js') }}"></script>
+{% endblock %}
